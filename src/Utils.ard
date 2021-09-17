@@ -71,15 +71,15 @@
 
 -- List
 
-\data List (A : \Type) | nil | cons A (List A)
+\data List (A : \Type) | nil | \infixr 5 :: A (List A)
 
 \func \infixl 6 ++ {A : \Type} (xs ys : List A) : List A \elim xs
   | nil => ys
-  | cons x xs => cons x (xs ++ ys)
+  | :: x xs => x :: xs ++ ys
 
 \func length {A : \Type} (xs : List A) : Nat
   | nil => 0
-  | cons _ xs => suc (length xs)
+  | :: _ xs => suc (length xs)
 
 -- Vec
 
