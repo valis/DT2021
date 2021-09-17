@@ -1,3 +1,4 @@
+\import Arith.Nat
 \open Nat
 
 -- Равенства
@@ -103,39 +104,3 @@
 \func maybe {A B : \Type} (b : B) (f : A -> B) (m : Maybe A) : B \elim m
   | nothing => b
   | just a => f a
-
--- Preorder
-
-\func \infix 4 < (x y : Nat) => suc x Nat.<= y
-
-\class Preorder (E : \Type)
-  | \infix 4 <= : E -> E -> \Type
-  | <=-refl {x : E} : x <= x
-  | <=-trans {x y z : E} : x <= y -> y <= z -> x <= z
-
-\class TotalPreorder \extends Preorder
-  | totality (x y : E) : Either (x <= y) (y <= x)
-
-\instance NatPreoder : TotalPreorder Nat
-  | <= => Nat.<=
-  | <=-refl => <=-refl
-  | <=-trans => <=-trans
-  | totality => totality
-  \where {
-    \func <=-refl {n : Nat} : n Nat.<= n \elim n
-      | 0 => zero<=_
-      | suc n => suc<=suc <=-refl
-
-    \func <=-trans {k m n : Nat} (p : k Nat.<= m) (q : m Nat.<= n) : k Nat.<= n \elim k, m, n, p, q
-      | 0, 0, n, p, q => zero<=_
-      | 0, suc m, suc n, p, q => zero<=_
-      | suc k, suc m, suc n, suc<=suc p, suc<=suc q => suc<=suc (<=-trans p q)
-
-    \func totality (n m : Nat) : Either (n Nat.<= m) (m Nat.<= n)
-      | 0, _ => inl zero<=_
-      | suc n, 0 => inr zero<=_
-      | suc n, suc m => \case totality n m \with {
-        | inl n<=m => inl (suc<=suc n<=m)
-        | inr m<=n => inr (suc<=suc m<=n)
-      }
-  }
