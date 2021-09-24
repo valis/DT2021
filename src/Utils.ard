@@ -73,7 +73,7 @@
 
 \data List (A : \Type) | nil | \infixr 5 :: A (List A)
 
-\func \infixl 6 ++ {A : \Type} (xs ys : List A) : List A \elim xs
+\func \infixr 5 ++ {A : \Type} (xs ys : List A) : List A \elim xs
   | nil => ys
   | :: x xs => x :: xs ++ ys
 
