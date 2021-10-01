@@ -95,7 +95,7 @@ ggg = g
 
 \module M4 \where {
   -- Каждому определению тоже соответствует модуль.
-  \func functionModule => 34
+  \func  functionModule => 34
     \where {
       \func f1 => 42
       \func f2 => 61
