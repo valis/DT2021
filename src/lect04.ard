@@ -1,0 +1,302 @@
+\import Algebra.Meta
+\import Function.Meta
+\import Paths.Meta
+\import Utils
+\open Nat
+
+-- 1. Рекурсивное определение vec, head, tail.
+
+\func vec (A : \Type) (n : Nat) : \Type \elim n
+  | 0 => \Sigma
+  | suc n => \Sigma A (vec A n)
+
+\func head {A : \Type} (n : Nat) (xs : vec A (suc n))
+  => xs.1
+
+\func tail {A : \Type} (n : Nat) (xs : vec A (suc n))
+  => xs.2
+
+-- 2. Индуктивное определиние Vec, head, tail, append, length.
+
+\data Vec (A : \Type) (n : Nat) \elim n
+  | 0 => vnil
+  | suc n => vcons A (Vec A n)
+
+-- Конструкторы принимают параметры типа данных в качестве неявных аргументов.
+\func emptyList => vnil {Nat}
+
+\func foo : Vec Nat 1 => vcons {Nat} {0} 100 vnil
+
+\func Head {A : \Type} {n : Nat} (xs : Vec A (suc n)) : A \elim xs
+  | vcons a xs => a
+
+\func Tail {A : \Type} {n : Nat} (xs : Vec A (suc n)) : Vec A n \elim xs
+  | vcons a xs => xs
+
+\func first {A : \Type} {n : Nat} (xs : Vec A n) : Maybe A \elim n, xs
+  | 0, vnil => nothing
+  | suc n, vcons a xs => just a
+
+\func append {A : \Type} {n m : Nat} (xs : Vec A n) (ys : Vec A m) : Vec A (m + n) \elim n, xs
+  | 0, vnil => ys
+  | suc n, vcons a xs => vcons a (append xs ys)
+
+-- Очень полезная функция.
+\func Fin-length {A : \Type} {n : Nat} (xs : Vec A n) => n
+
+\func bar => Fin-length (vcons 100 (vcons 101 vnil))
+
+-- 3. Fin, toNat, lookup.
+
+-- Тип n-элементных множеств можно определить различными способами.
+-- Например, мы можем определить его как подтип натуральных чисел:
+-- \func fin (n : Nat) => \Sigma (x : Nat) (T (x < n))
+
+\func Fin' (n : Nat) : \Set0
+  | 0 => Empty
+  | suc n => Maybe (Fin' n)
+
+-- Еще его можно определить индуктивно:
+\data Fin (n : Nat) \with
+  | suc n => { fzero | fsuc (Fin n) }
+
+-- Fin 0 -- пустой тип.
+\func Fin-absurd {A : \Type} (x : Fin 0) : A
+
+\func fin0 : Fin 3 => fzero
+\func fin1 : Fin 3 => fsuc fzero
+\func fin2 : Fin 3 => fsuc (fsuc fzero)
+-- \func fin3 : Fin 3 => fsuc (fsuc (fsuc fzero))
+
+-- Fin 3 has at least 3 elements.
+--
+
+-- В Fin 3 не более 3 элементов.
+\func atMost3 (x : Fin 3) : Either (x = fin0) (Either (x = fin1) (x = fin2))
+  | fzero => inl idp
+  | fsuc fzero => inr (inl idp)
+  | fsuc (fsuc fzero) => inr (inr idp)
+  | fsuc (fsuc (fsuc ()))
+
+\func toNat {n : Nat} (x : Fin n) : Nat \elim n, x
+  | suc n, fzero => 0
+  | suc n, fsuc x => suc (toNat x)
+
+-- Безопасный lookup.
+\func lookup {A : \Type} {n : Nat} (xs : Vec A n) (i : Fin n) : A \elim n, xs, i
+  | suc n, vcons a xs, fzero => a
+  | suc n, vcons a xs, fsuc i => lookup xs i
+
+-- 4. Data types may use non-structural recursion.
+
+\data Vec' (A : \Type) (n : Nat) \elim n
+  | 0 => vnil'
+  | suc n => vcons' A (Vec' A (suc n))
+
+\func Vec'-unique {A : \Type} {n : Nat} (xs : Vec' A (suc n)) : Empty \elim xs
+  | vcons' a xs => Vec'-unique xs
+
+{-
+\data Vec'' (A : \Type) (n : Nat) \elim n
+  | 0 => vnil''
+  | suc n => vcons'' A (Vec'' A n -> Nat)
+-}
+
+\func Vec'' (A : \Type) (n : Nat) : \hType \elim n
+  | 0 => \Sigma
+  | suc n => \Sigma A (Vec'' A n -> Nat)
+
+{-
+
+\data Vec (A : \Type) : Nat -> \Type
+  | vnil : Vec A 0
+  | vcons {n : Nat} A (Vec A n) : Vec A (suc n)
+
+\data Vec' (A : \Type) : Nat -> \Type
+  | vnil : Vec' A 0
+  | vcons {n : Nat} A (Vec' A n) : Vec' A (n + n)
+
+\data Id {A : \Type} : A -> A -> \Type
+  | idp {a : A} : Id a a
+
+ -}
+
+-- 5. Симметричность, транзитивность, принцип Лейбница, pmap через него.
+
+-- Принцип Лейбница говорит, что если a и a' обладают одними и теми же свойствами, то они равны.
+-- Его легко доказать.
+\func Leibniz {A : \Type} {a a' : A}
+              (f : \Pi (P : A -> \Type) -> \Sigma (P a -> P a') (P a' -> P a)) : a = a'
+  => \let t => f (= a) \in t.1 idp
+
+-- Обратный принцип Лейбница (который мы тоже будем называть принципом Лейбница) говорит, что если a = a', то они обладают одними и теми же свойствами, т.е. если верно B a, то верно B a'.
+-- \func transport {A : \Type} (B : A -> \Type) {a a' : A} (p : a = a') (b : B a) : B a'
+
+\func transport' {A : \Type} (B : A -> \Type) {a a' : A} (p : a = a') (b : B a') : B a
+  => transport B (sym p) b
+
+-- Используя принцип Лейбница, легко доказать (почти) все свойства равенства.
+-- Симметричность
+\func sym' {A : \Type} {a a' : A} (p : a = a') : a' = a
+  => transport (\lam x => x = a) p idp
+
+-- Транзитивность
+\func trans {A : \Type} {a a' a'' : A} (p : a = a') (q : a' = a'') : a = a''
+  => transport (\lam x => a = x) q p
+
+-- Конгруэнтность
+\func pmap' {A B : \Type} (f : A -> B) {a a' : A} (p : a = a') : f a = f a'
+  => transport (\lam x => f a = f x) p idp
+
+-- 6. Коммутативность сложения.
+
+-- transport обладает следующим свойством:
+-- transport B idp b => b
+
+-- Транзитивность в инфиксной форме.
+-- \func \infixr 5 *> {A : \Type} {a a' a'' : A} (p : a = a') (q : a' = a'') : a = a''
+--   => transport (\lam x => a = x) q p
+
+-- Функции *> и sym обладает следующим свойством:
+-- p *> idp => p
+-- sym idp => idp
+-- Можно определить транзитивность <*, которая будем обладать свойством idp <* p => p, но она нам не понадобится.
+
+\func \infixl 6 +' (x y : Nat) : Nat \elim y
+  | 0 => x
+  | suc y => suc (x +' y)
+
+\func +-comm (n m : Nat) : n +' m = m +' n
+  | 0, 0 => idp
+  | 0, suc m => pmap suc (+-comm 0 m)
+  | suc n, 0 => pmap suc (+-comm n 0)
+  | suc n, suc m => pmap suc (+-comm (suc n) m *> pmap suc (sym (+-comm n m)) *> +-comm n (suc m))
+
+\func example (n m : Nat) (xs : Vec Nat (n +' m)) : Vec Nat (m +' n)
+  => rewrite +-comm xs
+
+-- suc n + m = m + suc n == suc (m + n)
+-- suc m + n = n + suc m == suc (n + m)
+
+\func +-comm'' {n m : Nat} : n +' m = m +' n \elim n, m
+  | 0, 0 => idp
+  | 0, suc m => pmap suc +-comm''
+  | suc n, 0 => pmap suc +-comm''
+  | suc n, suc m => pmap suc (+-comm'' *> pmap suc (sym +-comm'') *> +-comm'')
+
+-- 8. Equational reasoning, коммутивность сложения через него.
+
+{-
+p : a = b
+q : b = c
+s : c = d
+
+p *> q *> s
+
+a  == {p}
+b  == {q}
+c  == {s}
+d
+ -}
+
+-- Используя equational reasoning, можно то же самое доказательство записать в более читаемой форме.
+\func +-comm' {n m : Nat} : n +' m = m +' n \elim n, m
+  | 0, 0 => idp
+  | 0, suc m => pmap suc +-comm'
+  | suc n, 0 => pmap suc +-comm'
+  | suc n, suc m => pmap suc (
+    suc n +' m ==< +-comm' >==
+    m +' suc n ==< pmap suc (sym +-comm') >==
+    n +' suc m ==< +-comm' >==
+    suc m +' n `qed
+  )
+
+\func +-comm''' {n m : Nat} : n +' m = m +' n \elim n, m
+  | 0, 0 => idp
+  | 0, suc m => pmap suc +-comm'''
+  | suc n, 0 => pmap suc +-comm'''
+  | suc n, suc m => pmap suc $ equation
+                                (suc n +' m) {+-comm'''}
+                                (m +' suc n) {pmap suc (sym +-comm''')}
+                                (n +' suc m) {+-comm'''}
+                                (suc m +' n)
+
+\import Arith.Nat \hiding (suc/=0)
+
+\func +-comm'''' {n m : Nat} : n + m = m + n \elim n, m
+  | 0, 0 => idp
+  | 0, suc m => idp
+  | suc n, 0 => idp
+  | suc n, suc m => pmap suc $ equation
+                                 (suc n + m)
+                                 (m + suc n)
+                                 (n + suc m)
+                                 (suc m + n)
+
+-- suc n + m = m + suc n == suc (m + n)
+-- suc m + n = n + suc m == suc (n + m)
+
+-- 9. Неравенство конструкторов
+
+\func Unit/=Empty (p : (\Sigma) = Empty) : Empty
+  => transport (\lam X => X) p ()
+
+\func true/=false (p : true = false) : Empty
+  => Unit/=Empty (pmap (\lam x => if x (\Sigma) Empty) p)
+
+-- 10. Вселенные, полиморфизм по уровням.
+
+-- Тип \Type0 содержит все типы, которые не упоминают \Type0.
+-- Тип \Type1 содержит все типы, которые могут упоминать \Type0, но не \Type1.
+-- И так далее. Тип \Type n содержит все типы, которые упоминают только \Type i для i < n.
+-- Тип \Type i называется вселенной, а число i называется уровнем вселенной.
+\func ttt : \Type2 => \Type0 -> \Type1
+
+\func id (A : \Type) (a : A) => a
+
+-- У каждого определения есть неявный параметр-уровень, к которому можно обратиться, написав \lp.
+-- Например, функция id, определенная выше, эквивалентна такому определению:
+\func id_ (A : \Type \lp) (a : A) => a
+
+-- Когда мы пишем \Type без указания уровня, тайпчекер сам выводит минимальный подходящий уровень.
+\func type : \Type => \Type
+
+-- Например, в примере выше у \Type, который написан в теле функции, будет выведен уровень \lp.
+-- У \Type, который написан в типе, уровень \lp не может быть, так как не верно, что \Type \lp : \Type \lp, поэтому он будет на 1 выше, то есть \suc \lp.
+\func type_ : \Type (\suc \lp) => \Type \lp
+
+-- На уровнях есть небольшой набор операций:
+-- * Любое натуральное число является уровнем
+-- * \suc l
+-- * \max l1 l2
+-- То есть любой уровень является либо константой, либо эквивалентен уровню вида \max (\lp + c) c', где c и c' -- константы, а \lp + c -- это уровень вида \suc (\suc ... (\suc \lp) ... ).
+-- Уровень пи-типов и других конструкций над типами -- это максимум из уровней типов, входящих в эту конструкцию.
+\func test0 : \Type (\max (\suc (\suc \lp)) 4) => \Type (\max \lp 3) -> \Type (\suc \lp)
+
+-- Когда мы определяем полиморфную функцию, такую как id, мы хотим, чтобы тип A мог лежать в любой вселенной.
+-- Поэтому все функции (и остальные определения) полиморфны по уровню вселенной, в которой они лежат.
+\func id'' (A : \Type) (a : A) => a
+
+-- Еще несколько примеров:
+\func test1_ => id \lp Nat 0
+\func test2_ => id (\suc \lp) \Type0 Nat
+\func test3 => id (\suc (\suc \lp)) (\Type0 -> \Type1) (\lam X => X)
+\func test4 => id (\suc \lp) _ id
+\func test4' => id (\suc \lp) (\Pi (A : \Type \lp) -> A -> A) (id \lp)
+
+-- При обращении к определению можно явно указать его уровень, то есть чему будет равен параметр \lp:
+\func test5 => id (\Type \lp) Nat
+-- Либо так:
+\func test5' => id \levels (\suc \lp) _ (\Type \lp) Nat
+-- Второй вариант синтаксиса полезен когда уровень является константой:
+\func test6 => id \levels 2 _ \Type1 \Type0
+-- Если при обращению к определению уровень не указан явно, он будет выведен автоматически как и в случае с \Type.
+-- В большинстве случаев нет необходимости указывать уровень явно.
+
+-- Параметры \data не влияют на его уровень.
+\data Magma' (A : \Type0)
+  | con (A -> A -> A)
+
+\func test7 : \Type \lp => Magma' \lp Nat
+
+\func id__ \plevels p1 >= p2 >= p3 (A : \Type (\max p1 p2)) (a : A) => a
