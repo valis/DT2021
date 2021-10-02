@@ -80,14 +80,8 @@
 --    Высота листа равна 0.
 
 \data Tree (A : \Type) (n : Nat) \elim n
-  | 0 => leaf
-  | 1 => node1 A
-  | suc (suc n) => {
-    | node  A (Tree A (suc n)) (Tree A (suc n))
-    | nodel A (Tree A (suc n))
-    | noder A (Tree A (suc n))
-    | node0 A
-  }
+  | _ => leaf
+  | suc n => node A (Tree A n) (Tree A n)
 
 -- определите функцию, возвращающую высоту дерева.
 
@@ -99,13 +93,8 @@
   | suc n, fsuc x, fsuc y => fsuc (max-Fin x y)
 
 \func height {A : \Type} (n : Nat) (t : Tree A n) : Fin (suc n)
-  | 0, leaf => fzero
-  | 1, node1 a => fsuc fzero
-  | suc (suc n), node a t1 t2 => fsuc (max-Fin (height (suc n) t1) (height _ t2))
-  | suc (suc n), nodel a t => fsuc (height _ t)
-  | suc (suc n), noder a t => fsuc (height _ t)
-  | suc (suc n), node0 a => fzero
-
+  | n, leaf => fzero
+  | suc n, node a c c1 => fsuc (max-Fin (height _ c) (height _ c1))
 
 -- Optional task
 -- 9. Функции Fin n -> A соответствуют спискам элементов A длины n.
