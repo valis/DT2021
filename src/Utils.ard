@@ -87,7 +87,7 @@
   | zero => vnil
   | suc n => vcons A (Vec A n)
 
-\func \infixl 4 v++ {A : \Type} {n m : Nat} (xs : Vec A n) (ys : Vec A m) : Vec A (m + n) \elim n, xs
+\func \infixl 4 v++ {A : \Type} {n m : Nat} (xs : Vec A n) (ys : Vec A m) : Vec A (n + m) \elim n, xs
   | 0, vnil => ys
   | suc n, vcons x xs => vcons x (xs v++ ys)
 

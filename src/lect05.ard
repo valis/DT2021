@@ -1,0 +1,283 @@
+\import Arith.Nat (NatSemiring, id<suc)
+\import Function.Meta
+\import Meta
+\import Order.StrictOrder
+\import Utils
+\open Nat
+
+-- 1. Элиминаторы.
+
+{-
+\func h (b : Bool) : P b
+  | true => t
+  | false => f
+
+\func h' => Bool-elim P t f
+ -}
+
+-- Элиминатор для Bool (рекурсор для Bool -- это просто if).
+\func Bool-elim (P : Bool -> \Type)
+                (t : P true)
+                (f : P false)
+                (x : Bool) : P x
+  \elim x
+  | true => t
+  | false => f
+
+\func Bool-rec (P : \Type)
+               (t : P)
+               (f : P)
+               (x : Bool) : P
+  => Bool-elim (\lam _ => P) t f x
+
+{-
+\func h (n : Nat) : P n
+  | zero => z
+  | suc n => s n (h n)
+
+\func h' => Bool-elim P t f
+ -}
+
+-- Элиминатор для Nat
+\func Nat-elim (P : Nat -> \Type)
+               (z : P zero)
+               (s : \Pi (n : Nat) -> P n -> P (suc n))
+               (x : Nat) : P x
+  \elim x
+  | 0 => z
+  | suc x => s x (Nat-elim P z s x)
+
+-- Рекурсор для Nat
+\func Nat-rec (P : \Type)
+              (z : P)
+              (s : Nat -> P -> P)
+              (x : Nat) : P
+  => Nat-elim (\lam _ => P) z s x
+
+-- 1.5. Принцип индукции для Nat
+
+\func Nat-ind (P : Nat -> \Type)
+              (s : \Pi (n : Nat) -> (\Pi {k : Nat} -> k < n -> P k) -> P n)
+              (x : Nat) : P x
+  => aux P s x (suc x) id<suc
+  \where {
+    \func aux (P : Nat -> \Type)
+              (s : \Pi (n : Nat) -> (\Pi {k : Nat} -> k < n -> P k) -> P n)
+              (y x : Nat) (p : y < x) : P y
+      \elim x
+      | suc x => s y (\lam {k} k<y => aux P s k x {?})
+  }
+
+-- 2. Оператор J.
+
+-- Оператор J является обобщением transport.
+-- Если transport -- это независимый элиминатор, то J -- его зависимая версия.
+
+-- Можно сравнить с элиминаторами для Nat.
+{-
+-- Независимая версия:
+\func Nat-rec (B : \Type)
+    (z : B)
+    (s : Nat -> B -> B)
+    (n : Nat)
+    : B
+
+-- Зависимая версия:
+\func Nat-elim (B : Nat -> \Type)
+    (z : B 0)
+    (s : \Pi (k : Nat) -> B k -> B (suc k))
+    (n : Nat)
+    : B n
+-}
+
+-- Независимая версия:
+\func transport''''
+  {A : \Type}
+  {a a' : A}
+  (B : A -> \Type)
+  (b : B a)
+  (p : a = a')
+  : B a' \elim p
+  | idp => b
+
+-- Зависимая версия:
+\func J
+  {A : \Type} {a : A}
+  (B : \Pi (a' : A) -> a = a' -> \Type)
+  (b : B a idp)
+  {a' : A} (p : a = a')
+  : B a' p \elim p
+  | idp => b
+
+-- Напоминание как выглядит элиминатор для Unit.
+\data Unit | unit
+
+\func Unit-elim
+  (B : Unit -> \Type)
+  (b : B unit)
+  (p : Unit)
+  : B p
+  \elim p
+  | unit => b
+
+\func Unit-singleton (x : Unit) : x = unit
+  => Unit-elim (\lam x => x = unit) idp x
+
+-- Если переписать тип B в некаррированом виде, то получится следующая версия того же оператора:
+-- Этот элиминатор в точности является элиминатором для Unit.
+-- Таким образом, J говорит, что в типе \Sigma (a' : A) (a = a') ровно один элемент.
+\func J'
+  {A : \Type} {a : A}
+  (B : (\Sigma (a' : A) (a = a')) -> \Type)
+  (b : B (a, idp))
+  (p : \Sigma (a' : A) (a = a'))
+  : B p
+  => J (\lam a' p => B (a',p)) b p.2
+
+-- Это утверждение не типизируется.
+-- \func =-unique' {A : \Type} {a a' : A} (p : a = a') : p = idp => {?}
+
+-- Это утверждение типизируется, но не верно, т.е. в типе a = a может быть больше одного элемента.
+-- \func =-unique {A : \Type} {a : A} (p : a = a) : p = idp => {?}
+
+-- J говорит, что для определения функции над a = a' достаточно определить ее для idp.
+-- При этом a' должен варьироваться вместе с a'.
+-- Если мы определим версию J, в которой a' всегда равно a, то мы получим оператор K:
+{-
+\func K {A : \Type} {a : A} (B : a = a -> \Type)
+    (b : B idp)
+    (p : a = a) : B p => {?}
+-}
+-- Этот оператор эквивалентен =-unique.
+-- Следовательно его невозможно доказать.
+-- Его можно добавить как аксиому, но мы не будем этого делать.
+-- Мы будем обсуждать его подробнее позже.
+
+-- 3. Matching with idp
+
+\func sym {A : \Type} {a a' : A} (p : a = a') : a' = a \elim p
+  | idp => idp
+
+\func trans {A : \Type} {a a' a'' : A} (p : a = a') (q : a' = a'') : a = a'' \elim p
+  | idp => q
+
+-- \func jj {A : \Type} {a a' : A} (f : Nat -> A) (p : f 0 = a) : a' = a \elim p
+--   | idp => {?}
+
+-- 4. Определение =.
+
+-- В прелюдии определен тип I с двумя конструкторами left и right, но в отличии от обычных \data эти два конструктора равны.
+-- Это означает, что для I нельзя использовать паттерн матчинг, так как иначе было бы легко вывести противоречие.
+-- Так как left и right равны, то некоторые a : A и a' : A равны тогда и только тогда, когда существует функция f : I -> A, такая что f left == a и f right == a', где == -- это вычислительное равенство.
+-- Тип a = {A} a' определен как тип функций I -> A, удовлетворяющих этому свойству.
+
+\func test {A : \Type} (f : I -> A) : f left = f right
+  => path f
+
+-- Чтобы доказать, что a = a, можно взять константную функцию \lam _ => a : I -> A.
+\func idp' {A : \Type} {a : A} : a = a => path (\lam _ => a)
+
+-- Если f : A -> B и g : I -> A, то их композиция дает нам pmap.
+-- Действительно g доказывает, что g left = g right, а композиция f и g доказывает, что f (g left) = f (g right).
+\func pmap'' {A B : \Type} (f : A -> B) {a a' : A} (p : a = a') : f a = f a'
+  => path (\lam i => f (p @ i))
+-- f (p @ left) === f a
+-- f (p @ right) === f a'
+
+-- Функция @, определенная в прелюдии, -- это просто обратная функция к конструктору path.
+-- path (f : I -> A) : f left = f right
+-- @ (p : a = a') (i : I) : A
+-- path f @ i == f i -- бета-эквивалентность
+-- path (\lam i => p @ i) == p -- эта-эквивалентность.
+
+-- pmap можно определять по разному, но если использовать определение, данное выше, то он будет обладать хорошими вычислительными свойствами.
+-- Например, pmap id = id и pmap (f . g) = pmap f . pmap g, где (.) -- это композиция.
+-- Если определить pmap по другому, то эти равенства тоже будут верны, но не вычислительно, то есть их нельзя будет доказать просто по рефлексивности.
+\func pmap-idp {A : \Type} {a a' : A} (p : a = a') : pmap (\lam x => x) p = p
+  => idp
+
+-- 5. Функциональная экстенсиональность.
+
+-- Функциональная экстенсиональность говорит, что если две функции f и g равны на всех аргументах, то они равны.
+-- Ее легко доказать, используя наше определение равенства.
+\func funExt {A : \Type} (B : A -> \Type) {f g : \Pi (a : A) -> B a}
+             (p : \Pi (a : A) -> f a = g a) : f = g
+  => path (\lam i a => p a @ i)
+
+-- p : \Pi (a : A) -> I -> B a
+-- ? : I -> \Pi (a : A) -> B a
+-- (\lam a => p a @ left) === (\lam a => f a) === f
+
+-- В большинстве других языков с зависимыми типами ее доказать нельзя.
+-- Ее можно добавить просто как аксиому, то есть функцию без реализации, но аксиомы обычно не любят добавлять, так как это портит вычислительные свойства языка.
+
+-- Например, если мы добавим аксиому исключенного третьего lem, то легко написать константу foo : Nat, которая не будет вычисляться ни в какое конкретное число.
+-- \func lem : \Pi (X : \Type) -> Either X (X -> Empty)
+-- \func foo : Nat => \case lem Nat \with { | Left => 0 | Right => 1 }
+
+-- 6. Элиминатор для I.
+
+-- О функции coe, определенной в прелюдии, можно думать как об элиминаторе для I.
+-- Она говорит, что для определения функции над I достаточно определить ее для left.
+-- Для сравнения элиминатор для Bool говорит, что для определения функции над Bool достаточно определить ее для true и false.
+
+{-
+\func coe (P : I -> \Type)
+          (a : P left)
+          (i : I) : P i \elim i
+  | left => a
+-}
+
+-- Используя coe, легко доказать, что любой i : I равен left.
+\func left=i (i : I) : left = i
+  --  | left => idp
+  => coe (\lam i => left = i) idp i
+
+-- Мы не можем доказать, что left не равно right, так как мы не можем определить такую функцию для I ни рекурсивно, ни через \data.
+{-
+\func TI (b : I)
+  | left => Unit
+  | right => Empty
+-}
+
+-- 7. coe и transport.
+
+-- Функция coe тесно связана с transport.
+-- Мы можем определить transport через coe.
+
+\func transport'' {A : \Type} (B : A -> \Type) {a a' : A} (p : a = a') (b : B a) : B a'
+  => coe (\lam i => B (p @ i)) b right
+-- Пусть B' == \lam i => B (p @ i).
+-- Тогда
+-- B' : I -> \Type
+-- B' left == B a
+-- B' right == B a'
+--
+-- \lam x => coe B' x right : B' left -> B' right
+
+-- В ДЗ нужно будет показать, что через transport определеяется частный случай coe.
+
+\func J'' {A : \Type} {a : A} (B : \Pi (a' : A) -> a = a' -> \Type) (b : B a idp)
+  {a' : A} (p : a = a') : B a' p
+  => coe (\lam i => B (p @ i) (path (\lam j => p @ I.squeeze i j))) b right
+
+-- 8. Ассоциативность ++ для векторов.
+
+\func +-assoc (n m k : Nat) : (n + m) + k = n + (m + k) \elim n
+  | 0 => idp
+  | suc n => pmap suc (+-assoc n m k)
+
+-- Ассоциативность для v++ даже сформулировать сложно, так как у (xs v++ ys) v++ zs и xs v++ (ys v++ zs) разные типы: Vec A (k + (m + n)) и Vec A ((k + m) + n).
+-- Это можно поправить при помощи transport, так как он позволяет любой элемент Vec A x превратить в элемент Vec A y, если x и y равны.
+\func v++-assoc {A : \Type} {n m k : Nat}
+                (xs : Vec A n) (ys : Vec A m) (zs : Vec A k)
+  : transport (Vec A) (+-assoc n m k) ((xs v++ ys) v++ zs) = xs v++ (ys v++ zs)
+  \elim n, xs
+    | 0, vnil => idp
+    | suc n, vcons a xs => transport-vcons a _ (+-assoc n m k) *> pmap (vcons a) (v++-assoc xs ys zs)
+  \where {
+    \func transport-vcons {A : \Type} (a : A) {n m : Nat} (xs : Vec A n) (p : n = m)
+      : transport (Vec A) (pmap suc p) (vcons a xs) = vcons a (transport (Vec A) p xs)
+      \elim p
+      | idp => idp
+  }
