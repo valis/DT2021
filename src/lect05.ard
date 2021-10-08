@@ -1,6 +1,7 @@
-\import Arith.Nat (NatSemiring, id<suc)
+\import Arith.Nat (<_suc_<=, NatSemiring, id<suc)
 \import Function.Meta
 \import Meta
+\import Order.LinearOrder
 \import Order.StrictOrder
 \import Utils
 \open Nat
@@ -65,7 +66,7 @@
               (s : \Pi (n : Nat) -> (\Pi {k : Nat} -> k < n -> P k) -> P n)
               (y x : Nat) (p : y < x) : P y
       \elim x
-      | suc x => s y (\lam {k} k<y => aux P s k x {?})
+      | suc x => s y (\lam {k} k<y => aux P s k x (<-transitive-left k<y (<_suc_<= p)))
   }
 
 -- 2. Оператор J.
