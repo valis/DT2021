@@ -29,8 +29,8 @@
 -- 5. Закончите определение класса монад. Этот класс должен содержать все монадные законы и реализовывать все поля из класса функторов.
 
 \class Monad \extends Functor
-  | return {A : \Type} : A -> F A
-  | \infixl 1 >>= {A B : \Type} : F A -> (A -> F B) -> F B
+  | return {A : \Set} : A -> F A
+  | \infixl 1 >>= {A B : \Set} : F A -> (A -> F B) -> F B
 
 -- 6. Определите \instance Monad для Maybe.
 
