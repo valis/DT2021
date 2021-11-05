@@ -1,5 +1,5 @@
 \import Data.Bool
-\import Data.List
+\import Data.List \hiding (headDef)
 \import Utils (<->)
 \import lect08
 \import Order.LinearOrder
