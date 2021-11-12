@@ -185,7 +185,7 @@
   => transport (Interp T) (return-right t) (typeableInterp ctx var (\lam v => neutralInterp (ctx v) varNeutral) p)
 
 -- Это более общее утверждение необходимо для усиления индукционной гипотезы.
-\func typeableInterp {V : \Set} (ctx : V -> Type) (env : V -> Term V)
-                     (C : \Pi (v : V) -> Interp (ctx v) (env v)) {t : Term V} {T : Type} (p : hasType ctx t T)
+\func typeableInterp {U V : \Set} (ctx : U -> Type) (env : U -> Term V)
+                     (C : \Pi (u : U) -> Interp (ctx u) (env u)) {t : Term U} {T : Type} (p : hasType ctx t T)
   : Interp T (t >>= env)
   => {?} -- это упражнение
