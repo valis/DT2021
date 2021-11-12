@@ -7,22 +7,6 @@
 
 -- 1. Закончите определение \instance Monad для Term.
 
-\instance MaybeMonad : Monad Maybe
-  | return => just
-  | >>= m k => maybe nothing k m
-  | return-left => {?}
-  | return-right => {?}
-  | >>=-assoc => {?}
-
-\func termMap {A B : \Set} (f : A -> B) (t : Term A) : Term B \elim t
-  | var v => var (f v)
-  | unit => unit
-  | app t1 t2 => app (termMap f t1) (termMap f t2)
-  | lam t => lam (termMap (maybe nothing (\lam x => just (f x))) t)
-
-\func liftM {A B : \Set} (k : A -> Term B) (m : Maybe A) : Term (Maybe B)
-  => maybe (var nothing) (\lam a => termMap just (k a)) m
-
 \instance TermMonad : Monad Term
   | return => var
   | >>= {A B : \Set} (t : Term A) (k : A -> Term B) : Term B \elim t {
@@ -35,16 +19,16 @@
   | return-right => {?}
   | >>=-assoc => {?}
 
--- 5. Определите отношение многошаговой редукции на Term.
+-- 2. Определите отношение многошаговой редукции на Term.
 
 \func Red {V : \Set} (t s : Term V) : \Type => {?}
 
--- 6. Стратегия редукции -- это функция, которая каждому терму сопоставляет либо некоторый терм, к которому он редуцируется за 1 шаг, либо доказательство, что таких термов нет.
+-- 3. Стратегия редукции -- это функция, которая каждому терму сопоставляет либо некоторый терм, к которому он редуцируется за 1 шаг, либо доказательство, что таких термов нет.
 --    Определите любую стратегию редукции.
 
 \func strategy {V : \Set} (t : Term V) : Decide (\Sigma (s : Term V) (Red1 t s)) => {?}
 
--- 7. Докажите, что подтермы достижимого терма достижимы.
+-- 4. Докажите, что подтермы достижимого терма достижимы.
 
 \func appAccLeft {V : \Set} {t s : Term V} (a : Acc Red1 (app t s)) : Acc Red1 t
   => {?}
@@ -55,7 +39,7 @@
 \func subLamAcc {V : \Set} {t : Term (Maybe V)} (a : Acc Red1 (lam t)) : Acc Red1 t
   => {?}
 
--- 8. Докажите следующую обобщенную лемму о подстановке и выведите из нее обычную версию: если Г, x : A |- b : B и Г |- a : A, то Г |- b[a/x] : B.
+-- 5. Докажите следующую обобщенную лемму о подстановке и выведите из нее обычную версию: если Г, x : A |- b : B и Г |- a : A, то Г |- b[a/x] : B.
 
 \func substLem {U V : \Set} (ctx : U -> Type) (b : Term U) (B : Type) (h : hasType ctx b B)
                (ctx' : V -> Type) (a : U -> Term V) (h' : \Pi (u : U) -> hasType ctx' (a u) (ctx u))
@@ -64,11 +48,11 @@
 
 \func substLem1 => {?}
 
--- 9. Докажите, что если Г |- a : A и Red a a', то Г |- a' : A
+-- 6. Докажите, что если Г |- a : A и Red a a', то Г |- a' : A
 
 \func redLem {V : \Set} {ctx : V -> Type} {a a' : Term V} (r : Red a a') {A : Type} (h : hasType ctx a A)
   : hasType ctx a' A
   => {?}
 
 -- Optional
--- 10. Докажите typeableInterp из лекции
+-- 7. Докажите typeableInterp из лекции
