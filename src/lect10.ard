@@ -202,7 +202,7 @@
                   (pA : isSet A) (pB : \Pi (x : A) -> isSet (B x))
   : isSet (\Sigma (x : A) (B x))
   => setLem {\Sigma (x : A) (B x)} (\lam t s => \Sigma (p : t.1 = s.1) (transport B p t.2 = s.2))
-      (\lam t s => Sigma'-isProp _ (pA _ _) (\lam x => {?})) (\lam t => (idp, idp)) (\lam t s p => ext p)
+      (\lam t s => Sigma'-isProp _ (pA _ _) (\lam x => unfold isProp (pB _ _ _))) (\lam t => (idp, idp)) (\lam t s p => ext p)
 
 \func Unit''-isSet : isSet Unit
   => setLem (\lam _ _ => \Sigma) (\lam _ _ => Unit-isProp) (\lam a => ()) (\lam a a' _ => Unit'-isProp a a')
